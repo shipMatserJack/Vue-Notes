@@ -1,0 +1,298 @@
+<template>
+  <div id="imgUploader">
+    <div class="file-list">
+      <section v-for="(file, index) in imgStore" :key="index" class="file-item draggable-item">
+        <img :src="file.src" alt="" ondragstart="return false;"   :style="{'border': '1px dashed #ccc'}" @click="previewImg(file.src)">
+        <i class="file-remove" @click="remove(index)">
+          <svg class="icon-trash">
+            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#uploader-delete"></use>
+          </svg>
+        </i>
+        <span class="flie-loading" v-if="imgStatus==='uploading'">上传中...</span>
+        <span class="flie-finished" v-if="imgStatus==='finished'">已上传</span>
+      </section>
+      <section class="file-item" v-if="imgStatus !== 'finished' && imgStore.length < maxLength">
+        <div class="add">
+          <svg class="icon">
+            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#uploader-bgc"></use>
+          </svg>
+          <!-- accept="image/jpeg,image/png" capture="camera" -->
+          <input type="file" multiple accept="image/*"
+            @change="selectImgs" ref="file"
+          >
+        </div>
+      </section>
+    </div>
+    <van-image-preview
+      v-model="showImages"
+      :images="images"
+      :close-on-popstate="true"
+      :show-index="false"
+    >
+    </van-image-preview>
+  </div>
+</template>
+
+<script>
+import { mapState } from 'vuex'
+import { _toast } from '@/assets/js/plugin'
+
+export default {
+  name: "uploader",
+  props: {
+    maxLength: {
+      //图片最大数量
+      type: Number,
+      default: 3
+    },
+    files: {
+      // 图片缓存
+      type: Array,
+      default() {
+        return []
+      }
+    },
+    showImages: {
+      //是否预览图片
+      type: Boolean,
+      default: false
+    }
+  },
+  data () {
+    return {
+      images: []//图片
+    }
+  },
+  computed: {
+    ...mapState({
+      imgStore: state => state.img_upload_cache.slice(0, 3),
+      imgPaths: state => state.img_paths,
+      imgStatus: state => state.img_status
+    })
+  },
+   
+  methods: {
+    /**
+     * 选择图片
+     */
+    selectImgs () {
+      let vm = this
+      let fileList = vm.$refs.file.files
+      for (let i = 0, len = fileList.length; i < len; i++) {
+        let item = {
+          name: fileList[i].name,
+          size: fileList[i].size,
+          file: fileList[i]
+        }
+        if(fileList[i].type.split('/')[0] !== 'image') {
+          _toast('请选择图片')
+          return 
+        }
+        if(this.files.length > 0 && this.files.findIndex((v) => {
+            return v.name === fileList[i].name
+          }) !== -1) {
+          _toast('图片已存在')
+          vm.$refs.file.value = ''
+          return
+        }
+        if(fileList[i].size/(1024*1024) > 10) {
+          _toast('请选择小于10M的图片')
+          vm.$refs.file.value = ''
+          return 
+        }
+        // 将图片文件转成BASE64格式
+        let reader = new FileReader()
+        reader.onload = (e) => {
+          let result = e.target.result,
+          img = new Image(),
+          pic_size = result.length/(512*1024) //单位mb
+          img.src = result
+          // 图片大于1M进行压缩
+          console.log('********未压缩前的图片大小********' + `${pic_size}mb`)
+          if(pic_size <= 1) {
+            vm.$set(item, 'src', img.src)
+          }else if(pic_size > 1 && pic_size <= 3){
+            vm.imgOnload(img, 0.5, item)
+          }else if(pic_size > 3 && pic_size <= 5) {
+            vm.imgOnload(img, 0.4, item)
+          }else if(pic_size > 5 && pic_size <= 10) {
+            vm.imgOnload(img, 0.3, item)
+          }else if(pic_size > 10 && pic_size <= 20) {
+            vm.imgOnload(img, 0.1, item)
+          }
+        }
+        // 读取图像
+        reader.readAsDataURL(fileList[i])
+        this.files.push(item)
+      }
+      this.files.splice(3)
+      console.log(this.files)
+      this.$store.commit('set_img_upload_cache', this.files.slice(0, 3)) // 存储文件缓存
+      this.$store.commit('set_img_status', 'selected') // 更新文件上传状态
+       // 每次上传初始化表单值
+      if(vm.$refs.file.value){
+        vm.$refs.file.value = ''
+      }
+    },
+
+    /**
+     * @desc 加载图片
+     * @param {Object} oldImg 上传的图片
+     * @param {Number} ratio 压缩比例，越低越模糊
+     * @param {Object} item 压缩后的图片对象
+     */
+    imgOnload(oldImg, ratio, item) {
+      let vm = this
+      oldImg.onload = async() => { 
+        let img_type = oldImg.src.split(';')[0].split('/')[1], //上传的图片类型
+        receive_type = ['jpeg'] //可被压缩的图片类型
+        oldImg.onload = null
+        if(receive_type.includes(img_type)){
+          await vm.imgCompress(oldImg, ratio)
+        }
+        vm.$set(item, 'src', oldImg.src)
+      }
+    },
+
+    /**
+     * @desc 图片压缩
+     * @param {Object} oldImg 上传的图片
+     * @param {Number} ratio 压缩比例，越低越模糊
+     */
+    imgCompress(oldImg, ratio){
+      let canvas = document.createElement('canvas')
+      let ctx = canvas.getContext('2d')
+      let width = oldImg.width
+      let height = oldImg.height
+      canvas.width = width
+      canvas.height = height
+      // 铺底色
+      ctx.fillStyle = '#fff'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(oldImg, 0, 0, width, height)
+      //进行最小压缩
+      let ndata = canvas.toDataURL('image/jpeg', ratio)
+      console.log('*******压缩后的图片大小*******' + `${ndata.length / (512*1024)}mb`)
+      oldImg.src = ndata
+      return ndata
+    },
+
+    /**
+     * @desc 移除图片
+     * @param {Number} index 图片索引
+     */
+    async remove (index) {
+      this.files.splice(index, 1) //删除
+      this.$store.commit('set_img_upload_cache', this.files) // 更新存储文件缓存
+    },
+
+    /**
+     * @desc 预览图片
+     * @param {*} img 图片base64
+     */
+    previewImg(img){
+      this.images = [img] //选中第一张先放入数组
+      this.files.filter((item) => { //将所有的图片放入数组
+        this.images.push(item.src)
+      })
+      this.images = Array.from(new Set(this.images)) //数组图片去重
+      this.showImages = true
+      this.$emit('previewImages', true)
+    },
+  },
+
+  beforeCreate () {
+    this.$store.commit('set_img_status', 'ready') // 更新文件上传状态
+  },
+
+  destroyed () {
+    this.$store.commit('set_img_upload_cache', [])
+    this.$store.commit('set_img_paths', [])
+  },
+  watch: {
+    imgStatus () {
+      if (this.imgStatus === 'uploading') {
+        // this.submit()
+      }
+    },
+    imgStore () {
+      if (this.imgStore.length <= 0) {
+        this.$store.commit('set_img_status', 'ready') // 更新文件上传状态
+      }
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+@import 'src/assets/css/mixin';
+#imgUploader  {
+  .file-list {
+    &::after {
+      content: '';
+      display: block;
+      clear: both;
+      visibility: hidden;
+      line-height: 0;
+      height: 0;
+      font-size: 0;
+    }
+    .file-item {
+      float: left;
+      position: relative;
+      margin-right: .5rem;
+      @include wh(4rem,4rem);
+      img,.icon {
+        @include wh(4rem,4rem);
+      }
+      .file-remove {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: .9rem;
+        height: .9rem;
+        color: white;
+        background: rgba(0, 0, 0, 0.5);
+        .icon-trash{
+          @include wh(.9rem,.9rem);
+        }
+      }
+      .flie-loading {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 1.5rem;
+        color: #fff;
+        background-color: rgba(0,0,0,.5);
+      }
+      .flie-finished {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 1.5rem;
+        color: #fff;
+        background-color: rgba(0,0,0,.5);
+      }
+      &:hover .file-remove {
+        display: inline;
+      }
+    }
+  }
+  .add {
+    width: 4rem;
+    height: 4rem;
+    float: left;
+    text-align: center;
+    line-height: 4rem;
+    position: relative; 
+    input[type="file"] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4rem;
+      height: 4rem;
+      opacity: 0;
+    }
+  }
+}
+</style>
