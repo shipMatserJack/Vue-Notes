@@ -3,6 +3,7 @@
 ***
 
 *最佳实践
+
  程序化事件监听器
 到目前为止，您已经看到了$emit，和with一起使用的用法v-on，但Vue实例在其事件接口中还提供了其他方法。我们可以：
 
@@ -10,7 +11,7 @@
 只听一次活动 $once(eventName, eventHandler)
 停止收听以下事件 $off(eventName, eventHandler)
 通常，您不必使用它们，但是在需要手动侦听组件实例上的事件的情况下，它们是可用的。它们还可以用作代码组织工具。例如，您可能经常会看到这种用于集成第三方库的模式：
-
+```bash
 // Attach the datepicker to an input once
 // it's mounted to the DOM.
 mounted: function () {
@@ -25,6 +26,7 @@ mounted: function () {
 beforeDestroy: function () {
   this.picker.destroy()
 }
+```bash
 这有两个潜在的问题：
 
 picker当可能只有生命周期挂钩需要访问它时，它需要将保存到组件实例。这并不可怕，但可以认为它很杂乱。
