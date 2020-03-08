@@ -27,15 +27,12 @@ mounted: function () {
 beforeDestroy: function () {
   this.picker.destroy()
 }
-```bash
 
-```bash
 这有两个潜在的问题：
 
 picker当可能只有生命周期挂钩需要访问它时，它需要将保存到组件实例。这并不可怕，但可以认为它很杂乱。
 我们的设置代码与清理代码保持分开，这使得以编程方式清理我们设置的内容变得更加困难。
 您可以使用程序化侦听器解决这两个问题：
-```bash
 mounted: function () {
   var picker = new Pikaday({
     field: this.$refs.input,
@@ -46,9 +43,9 @@ mounted: function () {
     picker.destroy()
   })
 }
-```bash
+
 使用这种策略，我们甚至可以将Pikaday与多个输入元素一起使用，每个新实例都会在其自身之后自动清除：
-```bash
+
 mounted: function () {
   this.attachDatepicker('startDateInput')
   this.attachDatepicker('endDateInput')
