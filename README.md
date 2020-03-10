@@ -63,3 +63,31 @@ methods: {
   }
 }
 
+
+### 路由参数变化组件不更新
+
+同一path的页面跳转时路由参数变化，但是组件没有对应的更新。
+
+原因：主要是因为获取参数写在了created或者mounted路由钩子函数中，路由参数变化的时候，这个生命周期不会重新执行。
+
+解决方案1：watch监听路由
+
+watch: {
+ // 方法1 //监听路由是否变化
+  '$route' (to, from) {
+   if(to.query.id !== from.query.id){
+            this.id = to.query.id;
+            this.init();//重新加载数据
+        }
+  }
+}
+//方法 2  设置路径变化时的处理函数
+watch: {
+'$route': {
+    handler: 'init',
+    immediate: true
+  }
+}
+解决方案2 ：为了实现这样的效果可以给router-view添加一个不同的key，这样即使是公用组件，只要url变化了，就一定会重新创建这个组件。
+
+<router-view :key="$route.fullpath"></router-view>
