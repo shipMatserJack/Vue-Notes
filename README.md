@@ -12,7 +12,6 @@
 停止收听以下事件 $off(eventName, eventHandler)
 通常，您不必使用它们，但是在需要手动侦听组件实例上的事件的情况下，它们是可用的。它们还可以用作代码组织工具。例如，您可能经常会看到这种用于集成第三方库的模式：
 
-```bash
 // Attach the datepicker to an input once
 // it's mounted to the DOM.
 mounted: function () {
@@ -62,7 +61,6 @@ methods: {
     })
   }
 }
-
 
 ### 路由参数变化组件不更新
 
