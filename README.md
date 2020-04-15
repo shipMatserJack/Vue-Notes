@@ -100,7 +100,92 @@ watch: {
 ```
 ### 递归组件实现逻辑
 ```
- todo
+ 定义子组件tree.vue, 以下为demo
+ <template>
+  <div class="tree">
+    <!-- 第一层开始 -->
+    <van-collapse v-model="activeName" accordion v-if="orgList.length">
+      <van-collapse-item
+        v-for="(org, index) in orgList"
+        :key="index"
+        :name="org.name"
+        :disabled="gridsOrg.map(v=>v.id).includes(org.id)"
+      >
+        <div slot="title" class="flex-start">
+          <van-icon
+            name="add"
+            color="#1989fa"
+            :style="{'margin-right':'5px'}"
+            @click.stop="choose(org)"
+          />
+          {{`${org.name}`}}
+        </div>
+        <template v-if="org.children_organizations && org.users">
+          <!-- 在这里引用tree自身，完成递归操作 -->
+          <tree :orgList="org.children_organizations" :users="org.users" :gridsOrg="gridsOrg"></tree>
+        </template>
+      </van-collapse-item>
+    </van-collapse>
+    <van-cell-group v-if="users.length">
+      <van-cell
+        v-for="(item, index) in users"
+        :key="index"
+        :title="`${item.name}`"
+        @click.stop="choose(item)"
+      />
+    </van-cell-group>
+    <!-- 第一层结束 -->
+  </div>
+</template>
+
+<script>
+export default {
+  name: "tree",
+  props: {
+    // 组织
+    orgList: {
+      type: Array,
+      default: () => []
+    },
+    // 个人
+    users: {
+      type: Array,
+      default: () => []
+    },
+    // 选中的组织
+    gridsOrg: {
+      type: Array,
+      default: () => []
+    }
+  },
+  data() {
+    return {
+      activeName: ""
+    };
+  },
+
+  created() {},
+
+  methods: {
+    /**
+     * @desc 选择拜访/组织
+     * @param {Obj} data 拜访人信息
+     */
+    choose(data) {
+      const isDisabled = this.$props.gridsOrg.map(v => v.id).includes(data.id);
+      // 选择组织后收起折叠面板
+      if (data.children_organizations && !isDisabled) {
+        this.activeName = "";
+      }
+      // 发布订阅事件
+      this.$root.eventBus.$emit("choosen", data);
+    }
+  }
+};
+</script>
+
+<style>
+</style>
 ```
 ### eventBus解决递归组件下子组件无法通过$emit向根组件发送数据
 解决方案：使用vue中央通信工具eventBus
