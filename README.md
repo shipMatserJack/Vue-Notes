@@ -99,8 +99,8 @@ watch: {
 <router-view :key="$route.fullpath"></router-view>
 ```
 ### 递归组件实现逻辑
+ 定义子组件tree.vue, 组件template模板内引用tree自身完成递归，传参建议采用eventBus中央通信，以下为demo
 ```
- 定义子组件tree.vue, 以下为demo
  <template>
   <div class="tree">
     <!-- 第一层开始 -->
