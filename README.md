@@ -2,7 +2,7 @@
 
 ***
 
-## 最佳实践
+## 最佳实践(高级进阶)
 
 ### 程序化事件监听器
 到目前为止，您已经看到了$emit，和with一起使用的用法v-on，但Vue实例在其事件接口中还提供了其他方法。我们可以：
@@ -194,5 +194,25 @@ export default {
     2)、父子组件传参（递归组件下$emit传递参数根组件不能接收的情况下）
     3)、全局数据监听触发
 2、实现思想：发布---订阅者模式
+
+### slot插槽在父子组件中的传参应用（v2.5.X）
+1、应用场景：父组件<father />在template模版中获取子组件<child />传入的参数
+2、代码实现
+子组件
+```
+  <child>
+    <slot name="child" :data="datas" />
+  </chiild>
+```
+父组件接收
+```
+  <father>
+    <template slot="child" slot-scope="props">
+      <div>{{props.data}}</div>
+    </template>
+  </father>
+```
+以上父组件通过slot-scope接收子组件的data参数,vue2.6.X参考https://www.cnblogs.com/gxp69/p/10784299.html
+
 
 ### vue-cli3+typescript 项目实践
