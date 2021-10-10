@@ -2,9 +2,9 @@
 
 ***
 
-## 最佳实践(高级进阶)
+## Vue2最佳实践(高级进阶)
 
-### 程序化事件监听器
+### 1. 程序化事件监听器
 到目前为止，您已经看到了$emit，和with一起使用的用法v-on，但Vue实例在其事件接口中还提供了其他方法。我们可以：
 
 与一起听事件 $on(eventName, eventHandler)
@@ -67,7 +67,7 @@ methods: {
 }
 ```
 
-### 路由参数变化组件不更新
+### 2. 路由参数变化组件不更新
 
 同一path的页面跳转时路由参数变化，但是组件没有对应的更新。
 
@@ -98,7 +98,7 @@ watch: {
 ```
 <router-view :key="$route.fullpath"></router-view>
 ```
-### 递归组件实现逻辑
+### 3. 递归组件实现逻辑
  定义子组件tree.vue, 组件template模板内引用tree自身完成递归，传参建议采用eventBus中央通信，以下为demo
 ```
  <template>
@@ -187,7 +187,7 @@ export default {
 <style>
 </style>
 ```
-### eventBus解决递归组件下子组件无法通过$emit向根组件发送数据
+### 4. eventBus解决递归组件下子组件无法通过$emit向根组件发送数据
 解决方案：使用vue中央通信工具eventBus
 1、使用场景：
     1)、兄弟组件传参
@@ -195,7 +195,7 @@ export default {
     3)、全局数据监听触发
 2、实现思想：发布---订阅者模式
 
-### slot插槽在父子组件中的传参应用（v2.5.X）
+### 5.slot插槽在父子组件中的传参应用（v2.5.X）
 1、应用场景：父组件<father />在template模版中获取子组件<child />传入的参数
 2、代码实现
 子组件
@@ -215,4 +215,40 @@ export default {
 以上父组件通过slot-scope接收子组件的data参数,vue2.6.X参考https://www.cnblogs.com/gxp69/p/10784299.html
 
 
-### vue-cli3+typescript 项目实践
+### 6.监听组件的生命周期
+比如有父组件 Parent 和子组件 Child，如果父组件监听到子组件挂载 mounted 就做一些逻辑处理，常规的写法可能如下：
+```js
+// Parent.vue
+<Child @mounted="doSomething"/>
+
+// Child.vue
+mounted() {
+  this.$emit("mounted");
+}
+```
+此外，还有一种特别简单的方式，子组件不需要任何处理，只需要在父组件引用的时候通过@hook 来监听即可，代码如下：
+```js
+<Child @hook:mounted="doSomething" />
+<Child @hook:updated="doSomething" />
+```
+当然这里不仅仅是可以监听 mounted，其它的生命周期事件，例如：created，updated 等都可以。
+
+### 7.长列表性能优化
+我们应该都知道 vue 会通过 object.defineProperty 对数据进行劫持，来实现视图响应数据的变化，然而有些时候我们的组件就是纯粹的数据展示，不会有任何改变，我们就不需要 vue 来劫持我们的数据，在大量数据展示的情况下，这能够很明显的减少组件初始化的时间。
+
+所以，我们可以通过 object.freeze 方法来冻结一个对象，这个对象一旦被冻结，vue就不会对数据进行劫持了。
+```js
+export default {
+  data: () => ({
+    list: []
+  }),
+  async created() {
+    const list = await axios.get('xxxx')
+    this.list = Object.freeze(list)
+  },
+  methods: {
+    // 此处做的操作都不能改变list的值
+  }
+}
+```
+另外需要说明的是，这里只是冻结了 list 的值，引用不会被冻结，当我们需要 reactive 数据的时候，我们可以重新给 list 赋值。
