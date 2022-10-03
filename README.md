@@ -255,6 +255,7 @@ export default {
 
 
 ### 8. render函数解决多个根元素报错的问题
+```js
 functional: true,
 render(h, { props }) {
   return props.routes.map(route =>
@@ -265,3 +266,12 @@ render(h, { props }) {
     </li>
   )
 }
+```
+
+### 解决组件刷新问题的router key
+场景还原：
+下面这个场景真的是伤透了很多程序员的心...先默认大家用的是Vue-router来实现路由的控制。
+假设我们在写一个博客网站，需求是从/post-page/a，跳转到/post-page/b。然后我们惊人的发现，页面跳转后数据竟然没更新？！原因是vue-router"智能地"发现这是同一个组件，然后它就决定要复用这个组件，所以你在created函数里写的方法压根就没执行。
+```template
+<router-view :key="$route.fullpath"></router-view>
+```
