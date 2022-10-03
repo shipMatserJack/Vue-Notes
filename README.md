@@ -252,3 +252,16 @@ export default {
 }
 ```
 另外需要说明的是，这里只是冻结了 list 的值，引用不会被冻结，当我们需要 reactive 数据的时候，我们可以重新给 list 赋值。
+
+
+### 8. render函数解决多个根元素报错的问题
+functional: true,
+render(h, { props }) {
+  return props.routes.map(route =>
+    <li key={route.name}>
+      <router-link to={route}>
+        {route.title}
+      </router-link>
+    </li>
+  )
+}
